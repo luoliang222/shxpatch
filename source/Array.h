@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <algorithm>
 #include <vector>
 using namespace std;
@@ -14,19 +15,31 @@ class xStream;
 template<class T>
 class xArray : public std::vector<T>
 {
+	typedef const T& const_reference;
+	typedef T& reference;
+
 public:
+/*	const_iterator begin() const
+	{
+		return std::vector<T>::begin();
+	}
+
+	iterator begin()
+	{
+		return std::vector<T>::begin();
+	}
+*/
     const_reference At(int i) const
     {
-		
-	ASSERT(i >= 0 && i < Count()); 
-        return begin()[i]; 
+		ASSERT(i >= 0 && i < Count()); 
+		return begin()[i];
     }
 
     reference At(int i)        
     {
        
 		ASSERT(i >= 0 && i < Count()); 
-        return begin()[i]; 
+        return std::vector<T>::begin()[i];
     }
 
     const_reference operator[](int i) const    

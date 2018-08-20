@@ -32,6 +32,16 @@ public:
     */
     RCPoint2_T operator=(RCPoint2_T src);
 
+	const T& operator[](int i) const
+	{
+		return (&X)[i];
+	}
+
+	T& operator[](int i)
+	{
+		return (&X)[i];
+	}
+
     void Assign(T _x, T _y)        
     { 
         X = _x; 

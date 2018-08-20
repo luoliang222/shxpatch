@@ -1,10 +1,11 @@
 #include "StdAfx.h"
 #include ".\fontchrlink.h"
 #include "glyph.h"
-
+#include "Point2_T.h"
+#include <math.h>
 
 short ic_bulge2arc(const Point2F& p0, const Point2F& p1, double bulge,
-				   Point2F& cc, double *rr, double *sa, double *ea);
+	Point2F& cc, double *rr, double *sa, double *ea);
 
 double ic_atan2(double yy, double xx);
 void ic_normang(double *a1, double *a2);
@@ -777,6 +778,106 @@ bool fontchrlink::ShapeCreateVec(CharData* pOut)
 	}
 	return true;
 }
+
+short ic_bulge2arc_1(const Point2F& p1, const Point2F& p2, double bulge,
+	Point2F& cc, double *rr, double *sa, double *ea)
+{
+	const int ARC_PARTS = 32;
+	const Point2F& pt = p1;
+	const Point2F& end_pt = p2;
+
+	if (pt == end_pt)
+		return -1;
+
+	if (icadRealEqual(bulge, 0.0))
+		return 1;   /* Line */
+
+	//解决圆弧拟合
+	double transfer_x = 0.0, transfer_y = 0.0;//起点到末点的偏移值(x,y)
+	double transfer_dist = 0.0;				//chord length(Lc)
+	double transfer_angle = 0.0;			//在以起点为原点的坐标系中,起点到末点所在直线的角度 [0，2*PI]
+	double angle_;							//在以起点为原点的坐标系中,起点到圆心所在直线的角度 [0，2*PI]
+	double dat_angle;						//圆弧弧度角
+	double arc_r = 0.0;						//圆弧半径
+	double x0 = 0.0, y0 = 0.0;				//圆心坐标(x0,y0)
+											//计算圆弧起点到末点的距离(Lc：chord length)
+	transfer_x = end_pt.X - pt.X;
+	transfer_y = end_pt.Y - pt.Y;
+	transfer_dist = sqrt(transfer_x * transfer_x + transfer_y * transfer_y);
+
+	if (icadRealEqual(transfer_dist, 0.0))
+		return -1;   /* Coincident */
+
+	//计算圆弧起点到末点的直线的角度,其范围为[0,2*PI]
+	if (transfer_x)
+	{
+		transfer_angle = atan(transfer_y / transfer_x)
+			+ (transfer_x < 0.0 ? IC_PI : 0.0);
+		if (transfer_x > 0.0 && transfer_y < 0.0)
+			transfer_angle += 2 * IC_PI;
+	}
+	else if (transfer_y > 0) 
+		transfer_angle = IC_PI / 2.0;
+	else if (transfer_y == 0)
+		transfer_angle = 0;
+	else if (transfer_y < 0)
+		transfer_angle = 3 * IC_PI / 2.0;
+
+	//计算圆弧的半径 r = ( b + 1/b ) * Lc /4 , b为凸度，Lc为弦长
+	arc_r = (bulge + 1 / bulge) * transfer_dist / 4;
+
+	//在以起点为原点的坐标系中,计算起点到圆心所在直线的角度 [0，2*PI]
+	angle_ = transfer_angle + acos(transfer_dist / fabs(arc_r)  * 0.5)
+		* ((bulge * (1 - fabs(bulge))) < 0 ? -1 : 1);
+	angle_ += angle_ >= 2 * IC_PI ? -2 * IC_PI : 0;
+	angle_ += angle_ <  0 ? 2 * IC_PI : 0;
+
+	//计算弧度角
+	dat_angle = 2 * asin(transfer_dist / fabs(arc_r) * 0.5);
+	if (fabs(bulge) > 1)
+		dat_angle = 2 * IC_PI - dat_angle;
+	dat_angle *= (bulge <  0) ? -1 : 1;
+
+	//计算圆弧的圆心(x0,y0)
+	x0 = pt.X + fabs(arc_r) * cos(angle_);
+	y0 = pt.Y + fabs(arc_r) * sin(angle_);
+
+	//转化为以圆心为原点的坐标系的圆心到起点的直线角度 [0，2*PI]
+	angle_ += IC_PI;
+	angle_ -= angle_ >= 2 * IC_PI ? 2 * IC_PI : 0;
+
+	*rr = arc_r;
+	cc[0] = x0;
+	cc[1] = y0;
+	*sa = angle_;
+	*ea = dat_angle + angle_;
+
+	if (*ea > IC_TWOPI)
+		*ea -= IC_TWOPI;
+
+	return 0;
+
+/*
+	//计算偏转角度
+	dat_angle /= (ARC_PARTS);
+
+	RtnPline.reserve(RtnPline.size() + ARC_PARTS);
+	//计算并输出弧上等分点的坐标
+	for (int j = 1; j < ARC_PARTS; j++)
+	{
+		transfer_angle = dat_angle * j + angle_;	//atan( transfer_x / transfer_y ) + ( transfer_x < 0.0 ? PI : 0.0 );
+		x = cos(transfer_angle) * fabs(arc_r) + x0;
+		y = sin(transfer_angle) * fabs(arc_r) + y0;
+		pt.X = x;		//x// //+ offset_x ) * scale_size ;
+		pt.Y = y;		//y// //+ offset_y ) * scale_size ;		
+		RtnPline.push_back(pt);
+	}
+	RtnPline.push_back(end_pt);
+	return ARC_PARTS;
+*/
+};
+
+
 short ic_bulge2arc(const Point2F& p0, const Point2F& p1, double bulge,
 					Point2F& cc, double *rr, double *sa, double *ea)
 {
@@ -808,6 +909,7 @@ short ic_bulge2arc(const Point2F& p0, const Point2F& p1, double bulge,
 		ss = sqrt(ss);
 	else
 		ss = 0.0;  /* Should never be negative*/
+
 
 	/* Find center: */
 	ara[0] = ss/sep;

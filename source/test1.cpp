@@ -4,14 +4,26 @@
 #include "stdafx.h"
 #include "ShapeFont.h"
 #include "fontchrlink.h"
+
+class MyPenCallback : public PenCallback {
+public:
+	virtual void MoveTo(float x, float y) {
+
+	}
+
+	virtual void LineTo(float x, float y) {
+
+	}
+};
+
 int _tmain(int argc, _TCHAR* argv[])
 {
-	ShapeFont* m_font = new ShapeFont();
-	if(m_font->Load("HT.SHX")){
+	ShapeFont g_ShxParser;
+	if(g_ShxParser.Load("../shxfont/gbcbig.SHX")){
 		printf("已打开");
-		printf("%i",m_font->Count());//字库包含多少字符
+		printf("%i", g_ShxParser.Count());//字库包含多少字符
 		//开始获得路径 例 '好' 字
-		CString str("好");
+		CString str("一");
 		//获得 '好' 字编码
 		char* kk=str.GetBuffer(0);
 		wchar_t buf1[100];
@@ -21,7 +33,9 @@ int _tmain(int argc, _TCHAR* argv[])
 		unsigned short k1;
 		memcpy(&k1,&kk[0],2);
 		//获得shx字体路径
-		string patch = m_font->Patch(k1,20,20,1,1);
+		MyPenCallback cb;
+		fontchrlink* link = g_ShxParser.GetFromCode(k1);
+		string patch = g_ShxParser.Patch(&cb, link, 20, 20, 1, 1);
 		printf("%s",patch.c_str());
 	}
 	else{

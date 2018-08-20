@@ -1,6 +1,32 @@
 #pragma once
-
+#include <string>
+#include "Array.h"
+using std::string;
 class fontchrlink;
+
+class PenCallback {
+public:
+	double minX, maxX, minY, maxY;
+	double curX, curY;
+	PenCallback() {
+		minX = minY = INT_MAX;
+		maxX = maxY = -INT_MAX;
+		curX = curY = 0;
+	}
+
+	virtual void setCurrent(float x, float y) {
+		curX = x;
+		curY = y;
+		minX = min(minX, x);
+		maxX = max(maxX, x);
+		minY = min(minY, y);
+		maxY = max(maxY, y);
+	}
+
+	virtual void MoveTo(float x, float y) { setCurrent(x, y); };
+	virtual void LineTo(float x, float y) { setCurrent(x, y); };
+};
+
 //CAD字体读写、解析类
 class  ShapeFont
 {
@@ -16,9 +42,11 @@ public:
 	int Count(){return m_data.Count();}
 	fontchrlink* Get(int i){return m_data[i];}
 	int Height(){return m_height;}
+	int Width() { return width; }
+	int GetAbove() { return above; }
+	int GetBelow() { return below; }
 
-	string Patch(unsigned short charCode,float orgX,float orgY,float scX,float scY);
-	//string Patch(unsigned short charCode,float orgX,float orgY,float scX,float scY);
+	string Patch(PenCallback* cb, fontchrlink* link, float orgX, float orgY, float scX, float scY);
 
 protected:
 	bool ReadUnifont(CFile& pFile,char* head);
@@ -38,6 +66,6 @@ protected:
 	char                    nesc;
 	char                   *esc; 
 
-	xArray<fontchrlink* > m_data;//数据记录
+	xArray< fontchrlink * > m_data;//数据记录
 	int m_height;//字体高度
 };

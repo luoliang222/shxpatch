@@ -1,6 +1,19 @@
 #pragma once
 #include "FontLib.h"
+
+#define IC_PI 3.1415926535898
+#define IC_TWOPI 6.2831853071796
+#define FABS fabs
+#define IC_ZRO 0.000001
+
+template<class T>
+inline bool icadRealEqual(T a, T b) {
+	T c = (a - b);
+	return (c <= IC_ZRO && c >= -IC_ZRO);
+}
+
 class TTF_table;
+
 //CAD Ê¸Á¿×ÖÌå 
 class fontchrlink
 {
